@@ -20,11 +20,12 @@ func main() {
 			fmt.Println("触发定时器")
 			messageList := getMessageList(messageLock)
 
+			l, _ := time.LoadLocation("Asia/Shanghai")
+
 			for _, message := range messageList {
-				fmt.Printf("发布人: %v\n发布时间: %v\n发布内容: %v\n", message.Author, message.Time.Format(time.DateTime), message.Text)
+				fmt.Printf("发布人: %v\n发布时间: %v\n发布内容: %v\n", message.Author, message.Time.In(l).Format(time.DateTime), message.Text)
 				messageLock[message.TweetID] = time.Now().Unix()
 			}
-
 			for key, lockTime := range messageLock {
 				if time.Now().Add(-2 * 24 * time.Hour).After(time.Unix(lockTime, 0)) {
 					delete(messageLock, key)
@@ -36,7 +37,7 @@ func main() {
 
 func getMessageList(messageLock map[string]int64) []message.MessageData {
 	messageList := make([]message.MessageData, 0)
-	for _, userID := range conf.GetConf().UserIDs {
+	for userID, author := range conf.GetConf().UserIDs {
 		postList, err := twitter.GetPostList(userID)
 		if err != nil {
 			fmt.Printf("拉取帖子列表失败, userID: %v, err: %v\n", userID, err)
@@ -68,19 +69,40 @@ func getMessageList(messageLock map[string]int64) []message.MessageData {
 						continue
 					}
 
-					post, err := twitter.GetPost(tweetId)
+					post, err := twitter.GetPostV2(tweetId)
 					if err != nil {
 						fmt.Printf("获取post失败，err: %v\n", err)
 						break
 					}
 
-					messageList = append(messageList, message.MessageData{
-						Author:  "",
-						Time:    createdAt,
-						Text:    post.Data.TweetResult.Result.Legacy.FullText,
-						ImgList: nil,
-						TweetID: tweetId,
-					})
+					for _, inst := range post.Data.ThreadedConversationWithInjectionsV2.Instructions {
+						for _, ent := range inst.Entries {
+							if ent.Content.ItemContent.TweetResults.Result.RestID == tweetId {
+								messageList = append(messageList, message.MessageData{
+									Author:  author,
+									Time:    createdAt,
+									Text:    ent.Content.ItemContent.TweetResults.Result.Legacy.FullText,
+									ImgList: nil,
+									TweetID: tweetId,
+								})
+								continue
+							}
+
+							for _, ite := range ent.Content.Items {
+								if strings.Contains(ite.EntryID, tweetId) {
+									messageList = append(messageList, message.MessageData{
+										Author:  author,
+										Time:    createdAt,
+										Text:    ite.Item.ItemContent.TweetResults.Result.Legacy.FullText,
+										ImgList: nil,
+										TweetID: tweetId,
+									})
+									continue
+								}
+							}
+						}
+					}
+
 					continue
 				}
 
@@ -112,7 +134,7 @@ func getMessageList(messageLock map[string]int64) []message.MessageData {
 						for _, ent := range inst.Entries {
 							if ent.Content.ItemContent.TweetResults.Result.RestID == tweetId {
 								messageList = append(messageList, message.MessageData{
-									Author:  "",
+									Author:  author,
 									Time:    createdAt,
 									Text:    ent.Content.ItemContent.TweetResults.Result.Legacy.FullText,
 									ImgList: nil,
@@ -124,7 +146,7 @@ func getMessageList(messageLock map[string]int64) []message.MessageData {
 							for _, ite := range ent.Content.Items {
 								if strings.Contains(ite.EntryID, tweetId) {
 									messageList = append(messageList, message.MessageData{
-										Author:  "",
+										Author:  author,
 										Time:    createdAt,
 										Text:    ite.Item.ItemContent.TweetResults.Result.Legacy.FullText,
 										ImgList: nil,

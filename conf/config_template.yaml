@@ -1,0 +1,12 @@
+# 以下配置从推特接口取得
+# 用户的headers 取得
+authorization: ''
+# get-post 接口使用，未登录用户的headers取得
+x-guest-token: ''
+# user-ids 关注的推特用户id
+user-ids:
+  "1611258858571444224": "ScarlettWeb3"
+# cookie 登录用户的 cookie 取得
+cookie: ''
+# x-csrf-token 登录用户的headers取得
+x-csrf-token: ''

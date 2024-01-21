@@ -8,11 +8,11 @@ import (
 )
 
 type Config struct {
-	Authorization string   `yaml:"authorization"`
-	XGuestToken   string   `yaml:"x-guest-token"`
-	UserIDs       []string `yaml:"user-ids"`
-	Cookie        string   `yaml:"cookie"`
-	XCSRFToken    string   `yaml:"x-csrf-token"`
+	Authorization string            `yaml:"authorization"`
+	XGuestToken   string            `yaml:"x-guest-token"`
+	UserIDs       map[string]string `yaml:"user-ids"`
+	Cookie        string            `yaml:"cookie"`
+	XCSRFToken    string            `yaml:"x-csrf-token"`
 }
 
 var (
