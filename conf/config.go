@@ -13,6 +13,9 @@ type Config struct {
 	UserIDs       map[string]string `yaml:"user-ids"`
 	Cookie        string            `yaml:"cookie"`
 	XCSRFToken    string            `yaml:"x-csrf-token"`
+	APPID         string            `yaml:"app-id"`
+	APPSecret     string            `yaml:"app-secret"`
+	ReceiveID     string            `yaml:"receive-id"`
 }
 
 var (

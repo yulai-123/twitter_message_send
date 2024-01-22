@@ -1,3 +1,7 @@
+github.com/yulai-123/message_send_tool v0.0.0-20240122030541-9ecf85d7acf0 h1:w2Z6zTglRQamuoddqLCdDBuhaITFUqy2NRFDFJZMbHM=
+github.com/yulai-123/message_send_tool v0.0.0-20240122030541-9ecf85d7acf0/go.mod h1:eyjA4FAfy+Zroe3cVOGsPI0xLdctN67Dsvjfph14OFE=
+github.com/yulai-123/message_send_tool v0.0.0-20240122034237-8c26f90157d1 h1:QkJezFlIWmvKDzTxB0ZIctbK8MCOqCyjnjvDWpoTBbI=
+github.com/yulai-123/message_send_tool v0.0.0-20240122034237-8c26f90157d1/go.mod h1:eyjA4FAfy+Zroe3cVOGsPI0xLdctN67Dsvjfph14OFE=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=

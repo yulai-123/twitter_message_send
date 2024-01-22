@@ -10,3 +10,9 @@ user-ids:
 cookie: ''
 # x-csrf-token 登录用户的headers取得
 x-csrf-token: ''
+# 飞书开放平台自建应用id
+app-id: ''
+# 飞书开放平台应用密钥
+app-secret: ''
+# 飞书用户lark_id
+receive-id: ''

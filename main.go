@@ -11,6 +11,7 @@ import (
 
 func main() {
 	conf.InitConfig("conf/my_config.yaml")
+	message.InitLarkMessage()
 	t := time.NewTicker(time.Minute)
 	messageLock := make(map[string]int64)
 
@@ -19,13 +20,15 @@ func main() {
 		case <-t.C:
 			fmt.Println("触发定时器")
 			messageList := getMessageList(messageLock)
-
-			l, _ := time.LoadLocation("Asia/Shanghai")
-
-			for _, message := range messageList {
-				fmt.Printf("发布人: %v\n发布时间: %v\n发布内容: %v\n", message.Author, message.Time.In(l).Format(time.DateTime), message.Text)
-				messageLock[message.TweetID] = time.Now().Unix()
+			err := message.SendMessageWithLark(messageList)
+			if err != nil {
+				fmt.Println(err)
+				continue
 			}
+			for _, m := range messageList {
+				messageLock[m.TweetID] = time.Now().Unix()
+			}
+
 			for key, lockTime := range messageLock {
 				if time.Now().Add(-2 * 24 * time.Hour).After(time.Unix(lockTime, 0)) {
 					delete(messageLock, key)
@@ -40,7 +43,13 @@ func getMessageList(messageLock map[string]int64) []message.MessageData {
 	for userID, author := range conf.GetConf().UserIDs {
 		postList, err := twitter.GetPostList(userID)
 		if err != nil {
-			fmt.Printf("拉取帖子列表失败, userID: %v, err: %v\n", userID, err)
+			s := fmt.Sprintf("拉取帖子列表失败, userID: %v, err: %v\n", userID, err)
+			fmt.Println(s)
+			messageList = append(messageList, message.MessageData{
+				Author: "error",
+				Time:   time.Now(),
+				Text:   fmt.Sprintf("发生一个错误, %v", s),
+			})
 			continue
 		}
 
@@ -71,17 +80,27 @@ func getMessageList(messageLock map[string]int64) []message.MessageData {
 
 					post, err := twitter.GetPostV2(tweetId)
 					if err != nil {
-						fmt.Printf("获取post失败，err: %v\n", err)
+						s := fmt.Sprintf("获取post失败，err: %v\n", err)
+						fmt.Println(s)
+						messageList = append(messageList, message.MessageData{
+							Author: "error",
+							Time:   time.Now(),
+							Text:   fmt.Sprintf("发生一个错误, %v", s),
+						})
 						break
 					}
 
 					for _, inst := range post.Data.ThreadedConversationWithInjectionsV2.Instructions {
 						for _, ent := range inst.Entries {
 							if ent.Content.ItemContent.TweetResults.Result.RestID == tweetId {
+								text := ent.Content.ItemContent.TweetResults.Result.NoteTweet.NoteTweetResults.Result.Text
+								if len(text) < 5 {
+									text = ent.Content.ItemContent.TweetResults.Result.Legacy.FullText
+								}
 								messageList = append(messageList, message.MessageData{
 									Author:  author,
 									Time:    createdAt,
-									Text:    ent.Content.ItemContent.TweetResults.Result.Legacy.FullText,
+									Text:    text,
 									ImgList: nil,
 									TweetID: tweetId,
 								})
@@ -90,10 +109,14 @@ func getMessageList(messageLock map[string]int64) []message.MessageData {
 
 							for _, ite := range ent.Content.Items {
 								if strings.Contains(ite.EntryID, tweetId) {
+									text := ent.Content.ItemContent.TweetResults.Result.NoteTweet.NoteTweetResults.Result.Text
+									if len(text) < 5 {
+										text = ent.Content.ItemContent.TweetResults.Result.Legacy.FullText
+									}
 									messageList = append(messageList, message.MessageData{
 										Author:  author,
 										Time:    createdAt,
-										Text:    ite.Item.ItemContent.TweetResults.Result.Legacy.FullText,
+										Text:    text,
 										ImgList: nil,
 										TweetID: tweetId,
 									})
@@ -126,17 +149,27 @@ func getMessageList(messageLock map[string]int64) []message.MessageData {
 
 					post, err := twitter.GetPostV2(tweetId)
 					if err != nil {
-						fmt.Printf("获取post失败，err: %v\n", err)
+						s := fmt.Sprintf("获取post失败，err: %v\n", err)
+						fmt.Println(s)
+						messageList = append(messageList, message.MessageData{
+							Author: "error",
+							Time:   time.Now(),
+							Text:   fmt.Sprintf("发生一个错误, %v", s),
+						})
 						break
 					}
 
 					for _, inst := range post.Data.ThreadedConversationWithInjectionsV2.Instructions {
 						for _, ent := range inst.Entries {
 							if ent.Content.ItemContent.TweetResults.Result.RestID == tweetId {
+								text := ent.Content.ItemContent.TweetResults.Result.NoteTweet.NoteTweetResults.Result.Text
+								if len(text) < 5 {
+									text = ent.Content.ItemContent.TweetResults.Result.Legacy.FullText
+								}
 								messageList = append(messageList, message.MessageData{
 									Author:  author,
 									Time:    createdAt,
-									Text:    ent.Content.ItemContent.TweetResults.Result.Legacy.FullText,
+									Text:    text,
 									ImgList: nil,
 									TweetID: tweetId,
 								})
@@ -145,10 +178,14 @@ func getMessageList(messageLock map[string]int64) []message.MessageData {
 
 							for _, ite := range ent.Content.Items {
 								if strings.Contains(ite.EntryID, tweetId) {
+									text := ent.Content.ItemContent.TweetResults.Result.NoteTweet.NoteTweetResults.Result.Text
+									if len(text) < 5 {
+										text = ent.Content.ItemContent.TweetResults.Result.Legacy.FullText
+									}
 									messageList = append(messageList, message.MessageData{
 										Author:  author,
 										Time:    createdAt,
-										Text:    ite.Item.ItemContent.TweetResults.Result.Legacy.FullText,
+										Text:    text,
 										ImgList: nil,
 										TweetID: tweetId,
 									})
