@@ -22,3 +22,4 @@ go.work
 
 conf/my_config.yaml
 .idea
+twitter_message_send

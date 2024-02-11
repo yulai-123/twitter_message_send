@@ -14,17 +14,20 @@ func main() {
 	message.InitLarkMessage()
 	t := time.NewTicker(time.Minute)
 	messageLock := make(map[string]int64)
+	l, _ := time.LoadLocation("Asia/Shanghai")
 
 	for {
 		select {
 		case <-t.C:
-			fmt.Println("触发定时器")
+			fmt.Println("触发定时器", time.Now().In(l).Format(time.DateTime))
+
 			messageList := getMessageList(messageLock)
 			err := message.SendMessageWithLark(messageList)
 			if err != nil {
 				fmt.Println(err)
 				continue
 			}
+			fmt.Println(len(messageList))
 			for _, m := range messageList {
 				messageLock[m.TweetID] = time.Now().Unix()
 			}
@@ -44,12 +47,7 @@ func getMessageList(messageLock map[string]int64) []message.MessageData {
 		postList, err := twitter.GetPostList(userID)
 		if err != nil {
 			s := fmt.Sprintf("拉取帖子列表失败, userID: %v, err: %v\n", userID, err)
-			fmt.Println(s)
-			messageList = append(messageList, message.MessageData{
-				Author: "error",
-				Time:   time.Now(),
-				Text:   fmt.Sprintf("发生一个错误, %v", s),
-			})
+			messageList = appendError(messageList, fmt.Sprintf("发生一个错误, %v", s))
 			continue
 		}
 
@@ -66,7 +64,8 @@ func getMessageList(messageLock map[string]int64) []message.MessageData {
 				if tweetId != "" {
 					createdAt, err := time.Parse(time.RubyDate, entry.Content.ItemContent.TweetResults.Result.Legacy.CreatedAt)
 					if err != nil {
-						fmt.Printf("解析时间错误, tweetId: %v, createdAt: %v\n", tweetId, entry.Content.ItemContent.TweetResults.Result.Legacy.CreatedAt)
+						s := fmt.Sprintf("解析时间错误, tweetId: %v, createdAt: %v\n", tweetId, entry.Content.ItemContent.TweetResults.Result.Legacy.CreatedAt)
+						messageList = appendError(messageList, fmt.Sprintf("发生一个错误, %v", s))
 						break
 					}
 
@@ -81,12 +80,7 @@ func getMessageList(messageLock map[string]int64) []message.MessageData {
 					post, err := twitter.GetPostV2(tweetId)
 					if err != nil {
 						s := fmt.Sprintf("获取post失败，err: %v\n", err)
-						fmt.Println(s)
-						messageList = append(messageList, message.MessageData{
-							Author: "error",
-							Time:   time.Now(),
-							Text:   fmt.Sprintf("发生一个错误, %v", s),
-						})
+						messageList = appendError(messageList, fmt.Sprintf("发生一个错误, %v", s))
 						break
 					}
 
@@ -136,7 +130,8 @@ func getMessageList(messageLock map[string]int64) []message.MessageData {
 					}
 					createdAt, err := time.Parse(time.RubyDate, item.Item.ItemContent.TweetResults.Result.Legacy.CreatedAt)
 					if err != nil {
-						fmt.Printf("解析时间错误, tweetId: %v, createdAt: %v\n", tweetId, item.Item.ItemContent.TweetResults.Result.Legacy.CreatedAt)
+						s := fmt.Sprintf("获取post失败，err: %v\n", err)
+						messageList = appendError(messageList, fmt.Sprintf("发生一个错误, %v", s))
 						break
 					}
 
@@ -150,12 +145,7 @@ func getMessageList(messageLock map[string]int64) []message.MessageData {
 					post, err := twitter.GetPostV2(tweetId)
 					if err != nil {
 						s := fmt.Sprintf("获取post失败，err: %v\n", err)
-						fmt.Println(s)
-						messageList = append(messageList, message.MessageData{
-							Author: "error",
-							Time:   time.Now(),
-							Text:   fmt.Sprintf("发生一个错误, %v", s),
-						})
+						messageList = appendError(messageList, fmt.Sprintf("发生一个错误, %v", s))
 						break
 					}
 
@@ -200,6 +190,26 @@ func getMessageList(messageLock map[string]int64) []message.MessageData {
 
 		}
 	}
+
+	return messageList
+}
+
+var (
+	lastErrorTime time.Time = time.Now()
+)
+
+func appendError(messageList []message.MessageData, errStr string) []message.MessageData {
+	// 错误信息十分钟间隔发送
+	if time.Now().After(lastErrorTime.Add(10 * time.Minute)) {
+		messageList = append(messageList, message.MessageData{
+			Author: "error",
+			Time:   time.Now(),
+			Text:   errStr,
+		})
+
+		lastErrorTime = time.Now()
+	}
+	fmt.Println("跳过错误", errStr)
 
 	return messageList
 }
