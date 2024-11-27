@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"github.com/yulai-123/twitter_message_send/conf"
 	"github.com/yulai-123/twitter_message_send/message"
 	"github.com/yulai-123/twitter_message_send/twitter"
@@ -12,22 +13,21 @@ import (
 func main() {
 	conf.InitConfig("conf/my_config.yaml")
 	message.InitLarkMessage()
-	t := time.NewTicker(time.Minute)
+	t := time.NewTicker(5 * time.Second)
 	messageLock := make(map[string]int64)
 	l, _ := time.LoadLocation("Asia/Shanghai")
 
 	for {
 		select {
 		case <-t.C:
-			fmt.Println("触发定时器", time.Now().In(l).Format(time.DateTime))
+			logrus.Info("触发定时器", time.Now().In(l).Format(time.DateTime))
 
 			messageList := getMessageList(messageLock)
 			err := message.SendMessageWithLark(messageList)
 			if err != nil {
-				fmt.Println(err)
+				logrus.Info("触发定时器", time.Now().In(l).Format(time.DateTime))
 				continue
 			}
-			fmt.Println(len(messageList))
 			for _, m := range messageList {
 				messageLock[m.TweetID] = time.Now().Unix()
 			}
@@ -209,7 +209,10 @@ func appendError(messageList []message.MessageData, errStr string) []message.Mes
 
 		lastErrorTime = time.Now()
 	}
-	fmt.Println("跳过错误", errStr)
+
+	if !time.Now().After(lastErrorTime.Add(10 * time.Minute)) {
+		logrus.Errorf("跳过错误: %v", errStr)
+	}
 
 	return messageList
 }
